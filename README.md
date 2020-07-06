@@ -25,13 +25,13 @@ This module uses Google Play Services' powerful Tasks API to execute various ope
 	- Internet
 
 ## Using the module in your game
-To use the module in GDScript:
+1. To use the module in GDScript
 	```python
-	if Engine.has_singleton("GodotPlayGameServices"):
-		gpgs = Engine.get_singleton("GodotPlayGameServices")
+	if Engine.has_singleton("GooglePlayGameServices"):
+		gpgs = Engine.get_singleton("GooglePlayGameServices")
 		gpgs.init(get_instance_id(), true)
 	```
-4. Now, you should be able to call the functions in the `gpgs` object (singleton) in order to use the Google Play Game Services.
+2. Now, you should be able to call the functions in the `gpgs` object (singleton) in order to use the Google Play Game Services.
 
 ## Functions and Callbacks
 See the [Wiki](https://github.com/Kopfenheim/godot-gpgs/wiki) for a description of the various functions that you can call on the `gpgs` object and the various callbacks that you can listen for in your GDScript file
