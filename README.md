@@ -13,13 +13,13 @@ This module uses Google Play Services' powerful Tasks API to execute various ope
 
 ## Setup
 1. Clone or download this repository
-2. Place the Godot Java library in the libs folder
+2. Place the Godot Java library into gpgs/libs
 3. Setup your Project in your Google Play Console
 4. Place your game-ids.xml file inside gpgs/src/main/res/values
 5. Run `gradlew build`
-6. Find the compiled library inside the gpgs/build/outputs/aar
+6. Find the compiled library under gpgs/build/outputs/aar (it's called GooglePlayGameServices.1.0.0.release.aar or something similar)
 7. Enable 'custom build' in your Godot project
-8. Move your compiled aar and the GooglePlayGameServices.gdap file to the android/plugins folder
+8. Move your compiled aar and the GooglePlayGameServices.gdap file into your android/plugins folder
 10. Enable the following permissions in the Export menu
 	- Access Network State
 	- Internet
