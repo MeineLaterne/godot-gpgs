@@ -76,4 +76,4 @@ lint/tmp/
 
 
 # games-ids.xml
-gpgs/gpgs/src/main/res/values/games-ids.xml
+gpgs/src/main/res/values/games-ids.xml
