@@ -1,13 +1,10 @@
-package org.godotengine.godot.gpgs;
+package com.meinelaterne.godot_gpgs.util;
 
-import android.content.Intent;
 import android.app.Activity;
-import android.support.annotation.NonNull;
+import android.content.Intent;
 import android.util.Log;
 
-import org.godotengine.godot.GodotLib;
-import org.godotengine.godot.gpgs.PlayerInfo;
-import org.godotengine.godot.GodotPlayGameServices;
+import androidx.annotation.NonNull;
 
 import com.google.android.gms.auth.api.Auth;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
@@ -15,8 +12,9 @@ import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.auth.api.signin.GoogleSignInResult;
+import com.google.android.gms.common.Scopes;
 import com.google.android.gms.common.api.ApiException;
-import com.google.android.gms.drive.Drive;
+import com.google.android.gms.common.api.Scope;
 import com.google.android.gms.games.Games;
 import com.google.android.gms.games.Player;
 import com.google.android.gms.games.PlayersClient;
@@ -24,6 +22,9 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
+import com.meinelaterne.godot_gpgs.GooglePlayGameServices;
+
+import org.godotengine.godot.GodotLib;
 
 public class Client {
 
@@ -55,11 +56,11 @@ public class Client {
     private Activity activity = null;
 
     // The main class object for this module
-    private GodotPlayGameServices gpgs = null;
+    private GooglePlayGameServices gpgs = null;
 
     public PlayerInfo currentPlayer = null;
 
-    public Client(final Activity activity, final int instance_id, GodotPlayGameServices gpgs, boolean buildSnapshots) {
+    public Client(final Activity activity, final int instance_id, GooglePlayGameServices gpgs, boolean buildSnapshots) {
         this.instance_id = instance_id;
         this.activity = activity;
         this.gpgs = gpgs;
@@ -70,7 +71,7 @@ public class Client {
         if (buildSnapshots){
             Log.d(TAG, "Creating sign in client with Saved Games functionality");
             GoogleSignInOptions signInOptions = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_GAMES_SIGN_IN)
-                    .requestScopes(Drive.SCOPE_APPFOLDER)
+                    .requestScopes(new Scope(Scopes.DRIVE_APPFOLDER))
                     .build();
             mGoogleSignInClient = GoogleSignIn.getClient(activity, signInOptions);
         }else{
@@ -98,10 +99,10 @@ public class Client {
             @Override
             public void onComplete(@NonNull Task<GoogleSignInAccount> task) {
                 if (task.isSuccessful()) {
-                    Log.d(TAG, "signInSilently(): success");
+                    Log.d(TAG, "signInSilent(): success");
                     onConnected(task.getResult(), SIGN_IN_SILENT);
                 } else {
-                    Log.d(TAG, "signInSilently(): failure", task.getException());
+                    Log.d(TAG, "signInSilent(): failure", task.getException());
                     onDisconnected();
                     GodotLib.calldeferred(instance_id, GODOT_CALLBACK_FUNCTIONS[2], new Object[] { SIGN_IN_SILENT });
                 }
@@ -129,25 +130,34 @@ public class Client {
     }
 
     public void onMainActivityResult(int requestCode, int resultCode, Intent intent) {
-        switch (requestCode){
-            case RC_SIGN_IN:
-                GoogleSignInResult result = Auth.GoogleSignInApi.getSignInResultFromIntent(intent);
-                if (result.isSuccess()) {
-                    GoogleSignInAccount signedInAccount = result.getSignInAccount();
-                    onConnected(signedInAccount, SIGN_IN_INTERACTIVE);
+        if (requestCode == RC_SIGN_IN) {
+            GoogleSignInResult result = Auth.GoogleSignInApi.getSignInResultFromIntent(intent);
 
-                    // This line was needed to show the popups for "Welcome back", "achievement unlocked", etc.
-                    // Ugh, this thing was annoying to figure out haha.
-                    Games.getGamesClient(activity, signedInAccount).setViewForPopups(activity.findViewById(android.R.id.content));
-                } else {
-                    String message = result.getStatus().getStatusMessage();
-                    if (message != null || !message.isEmpty()) {
-                        Log.d(TAG, "Connection error. ApiException message: " + message);
-                    }
-                    onDisconnected();
-                    GodotLib.calldeferred(instance_id, GODOT_CALLBACK_FUNCTIONS[2], new Object[] { SIGN_IN_INTERACTIVE });
+            if (result == null) {
+                Log.d(TAG, "Client.onMainActivityResult: condition result == null is true. aborting.");
+                return;
+            }
+
+            if (result.isSuccess()) {
+                GoogleSignInAccount signedInAccount = result.getSignInAccount();
+                if (signedInAccount == null) {
+                    Log.d(TAG, "Client.onMainActivityResult: Received null from result.getSignInAccount(). Aborting.");
+                    return;
                 }
-                break;
+
+                onConnected(signedInAccount, SIGN_IN_INTERACTIVE);
+
+                // This line was needed to show the popups for "Welcome back", "achievement unlocked", etc.
+                // Ugh, this thing was annoying to figure out haha.
+                Games.getGamesClient(activity, signedInAccount).setViewForPopups(activity.findViewById(android.R.id.content));
+            } else {
+                String message = result.getStatus().getStatusMessage();
+                if (message != null) {
+                    Log.d(TAG, "Connection error. ApiException message: " + message);
+                }
+                onDisconnected();
+                GodotLib.calldeferred(instance_id, GODOT_CALLBACK_FUNCTIONS[2], new Object[]{SIGN_IN_INTERACTIVE});
+            }
         }
     }
 

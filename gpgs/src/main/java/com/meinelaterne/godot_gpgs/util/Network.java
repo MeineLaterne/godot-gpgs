@@ -1,11 +1,10 @@
-package org.godotengine.godot.gpgs;
+package com.meinelaterne.godot_gpgs.util;
 
-import android.util.Log;
 import android.app.Activity;
-
+import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
-import android.content.Context;
+import android.util.Log;
 
 public class Network {
 
@@ -25,7 +24,10 @@ public class Network {
     private boolean isConnected(int type) {
         NetworkInfo networkInfo = connectivityManager.getNetworkInfo(type);
 
-        return networkInfo.isConnected();
+        if (networkInfo != null)
+            return networkInfo.isConnected();
+
+        return false;
     }
 
     public boolean isOnline() {

@@ -1,9 +1,6 @@
-package org.godotengine.godot.gpgs;
+package com.meinelaterne.godot_gpgs.util;
 
 import android.app.Activity;
-
-import org.godotengine.godot.GodotLib;
-import org.godotengine.godot.gpgs.GodotCache;
 
 import com.google.android.gms.games.Player;
 

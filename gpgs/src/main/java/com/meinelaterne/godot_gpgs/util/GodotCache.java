@@ -1,4 +1,4 @@
-package org.godotengine.godot.gpgs;
+package com.meinelaterne.godot_gpgs.util;
 
 import org.godotengine.godot.GodotLib;
 
@@ -9,12 +9,10 @@ import android.graphics.Canvas;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
-import android.util.Base64;
 import android.util.Log;
 
 import com.google.android.gms.common.images.ImageManager;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 

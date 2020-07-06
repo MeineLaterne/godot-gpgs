@@ -1,0 +1,7 @@
+[config]
+name="GooglePlayGameServices"
+binary_type="local"
+binary="GooglePlayGameServices.1.0.0.release.aar"
+
+[dependencies]
+remote=["com.google.android.gms:play-services-games:19.0.0", "com.google.android.gms:play-services-auth:18.0.0", "com.google.android.gms:play-services-identity:17.0.0"]

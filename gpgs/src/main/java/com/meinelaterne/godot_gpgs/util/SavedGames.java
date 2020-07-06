@@ -1,13 +1,11 @@
-package org.godotengine.godot.gpgs;
-
-import org.godotengine.godot.GodotLib;
-import org.godotengine.godot.gpgs.GodotCache;
+package com.meinelaterne.godot_gpgs.util;
 
 import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.support.annotation.NonNull;
 import android.util.Log;
+
+import androidx.annotation.NonNull;
 
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.games.Games;
@@ -20,6 +18,8 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
+
+import org.godotengine.godot.GodotLib;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -97,6 +97,11 @@ public class SavedGames {
     }
 
     public void requestWriteSnapshot(String snapshotName, final String data, final String description, final String imageFileName){
+
+        if (snapshotsClient == null) {
+            snapshotsClient = Games.getSnapshotsClient(activity, signedInAccount);
+        }
+
         snapshotsClient.open(snapshotName, true, conflictResolutionPolicy)
                 .addOnFailureListener(new OnFailureListener() {
                     @Override
@@ -145,6 +150,11 @@ public class SavedGames {
     }
 
     public void requestLoadSnapshot(String snapshotName){
+
+        if (snapshotsClient == null) {
+            snapshotsClient = Games.getSnapshotsClient(activity, signedInAccount);
+        }
+
         snapshotsClient.open(snapshotName, true, conflictResolutionPolicy)
                 .addOnFailureListener(new OnFailureListener() {
                     @Override

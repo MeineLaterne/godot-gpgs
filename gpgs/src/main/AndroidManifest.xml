@@ -1,0 +1,16 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.meinelaterne.godot_gpgs" >
+
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <application>
+        <meta-data
+            android:name="org.godotengine.plugin.v1.GooglePlayGameServices"
+            android:value="com.meinelaterne.godot_gpgs.GooglePlayGameServices" />
+        <meta-data
+            android:name="com.google.android.gms.games.APP_ID"
+            android:value="@string/app_id" />
+    </application>
+
+</manifest>
