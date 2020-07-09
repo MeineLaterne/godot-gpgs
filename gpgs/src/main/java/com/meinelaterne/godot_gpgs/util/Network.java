@@ -11,7 +11,7 @@ public class Network {
     private Activity activity = null;
     private ConnectivityManager connectivityManager = null;
 
-    private static final String TAG = "godot";
+    private static final String TAG = "gpgs";
 
     public Network(final Activity activity) {
         this.activity = activity;

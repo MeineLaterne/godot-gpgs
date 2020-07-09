@@ -13,13 +13,11 @@ public class Achievements {
     private static final int RC_ACHIEVEMENT_UI = 9003;
 
     private Activity activity = null;
-    private int instance_id = 0;
     private GoogleSignInAccount signedInAccount = null;
 
-    public Achievements(Activity activity, GoogleSignInAccount signedInAccount, int instance_id) {
+    public Achievements(Activity activity, GoogleSignInAccount signedInAccount) {
         this.signedInAccount = signedInAccount;
         this.activity = activity;
-        this.instance_id = instance_id;
     }
 
     public boolean showAchievementsUI(){

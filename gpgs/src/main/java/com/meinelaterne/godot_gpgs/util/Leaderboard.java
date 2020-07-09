@@ -13,13 +13,11 @@ public class Leaderboard {
     private static final int RC_LEADERBOARD_UI = 9004;
 
     private Activity activity = null;
-    private int instance_id = 0;
     private GoogleSignInAccount signedInAccount = null;
 
-    public Leaderboard(Activity activity, GoogleSignInAccount signedInAccount, int instance_id) {
+    public Leaderboard(Activity activity, GoogleSignInAccount signedInAccount) {
         this.signedInAccount = signedInAccount;
         this.activity = activity;
-        this.instance_id = instance_id;
     }
 
     public boolean showLeaderboardUI(String leaderboardID){

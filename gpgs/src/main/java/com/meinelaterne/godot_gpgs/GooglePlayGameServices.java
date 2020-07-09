@@ -6,31 +6,35 @@ import android.util.Log;
 import android.view.WindowManager;
 
 import androidx.annotation.NonNull;
+import androidx.collection.ArraySet;
 
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
+import com.google.android.gms.games.PlayerLevelInfo;
 import com.meinelaterne.godot_gpgs.util.Achievements;
 import com.meinelaterne.godot_gpgs.util.Client;
 import com.meinelaterne.godot_gpgs.util.GodotCache;
 import com.meinelaterne.godot_gpgs.util.Leaderboard;
 import com.meinelaterne.godot_gpgs.util.Network;
+import com.meinelaterne.godot_gpgs.util.PlayerInfo;
 import com.meinelaterne.godot_gpgs.util.SavedGames;
+import com.meinelaterne.godot_gpgs.util.Subscriber;
 
 import org.godotengine.godot.Godot;
 import org.godotengine.godot.plugin.GodotPlugin;
+import org.godotengine.godot.plugin.SignalInfo;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
-public class GooglePlayGameServices extends GodotPlugin {
-
-    private static final String TAG = "gpgs";
-    public static final String STRING_DATA_DELIMITER = ",";
-
-    private static final int REQUEST_RESOLVE_ERROR = 1001;
+public class GooglePlayGameServices extends GodotPlugin implements Subscriber {
 
     public static final String GODOT_SUB_FOLDER = "files";
     public static final String CACHE_FOLDER = "gpgs_lib_cache";
 
+    private static final String TAG = "gpgs";
+
+    private static final int REQUEST_RESOLVE_ERROR = 1001;
     private Activity activity;
 
     private GoogleSignInAccount signedInAccount;
@@ -42,39 +46,20 @@ public class GooglePlayGameServices extends GodotPlugin {
 
     private boolean savedGamesEnabled = false;
 
-    private int[] instanceIDs = new int[]{
-            0, // For connection, network and player info callbacks
-            0, // For achievements callbacks
-            0, // For leaderboards callbacks
-            0, // For saved games callbacks
-            0, // For real time multiplayer callbacks
-    };
-
     public GooglePlayGameServices(Godot godot) {
         super(godot);
         activity = getActivity();
     }
 
     /**
-     * @param instanceIDsStr 	The instance IDs of the scripts where the various groups of callback
-     *                       	functions are scattered in Godot (In Godot: get_instance_id()). This
-     *                       	allows the callback functions in GDScript to be distributed across
-     *                       	various scripts which should help make them more manageable.
-     *                    		The data in the string must be arranged in the following order and
-     *                    		each data entry must be separated by the defined delimiter
-     *                    		(use getDelimiter() in Godot to get the expected delimiter):
-    0: For connection, network and player info callbacks
-    1: For achievements callbacks
-    2: For leaderboards callbacks
-    3: For saved games callbacks
-    4: For real time multiplayer callbacks
      * @param useSavedGames Specifies whether or not play game services will be compiled with saved games functionality or not
      */
-    public void init(final String instanceIDsStr, boolean useSavedGames) {
-        setInstanceIDsFromString(instanceIDsStr, STRING_DATA_DELIMITER);
-        client = new Client(activity, instanceIDs[0], this, useSavedGames);
+    public void init(boolean useSavedGames) {
+        client = new Client(activity, this, useSavedGames);
         network = new Network(activity);
         savedGamesEnabled = useSavedGames;
+
+        client.addSubscriber(this);
     }
 
     public void clearCache(){
@@ -91,16 +76,15 @@ public class GooglePlayGameServices extends GodotPlugin {
         });
     }
 
-    public String getDelimiter(){
-        return STRING_DATA_DELIMITER;
-    }
-
     public void setClient(GoogleSignInAccount signedInAccount) {
         this.signedInAccount = signedInAccount;
-        this.achievements = new Achievements(activity, signedInAccount, instanceIDs[1]);
-        this.leaderboard = new Leaderboard(activity, signedInAccount, instanceIDs[2]);
-        this.savedGames = new SavedGames(activity, signedInAccount, instanceIDs[3]);
-        Log.d(TAG, "setClient: " + signedInAccount.getDisplayName());
+        this.achievements = new Achievements(activity, signedInAccount);
+        this.leaderboard = new Leaderboard(activity, signedInAccount);
+        this.savedGames = new SavedGames(activity, signedInAccount);
+
+        savedGames.addSubscriber(this);
+
+        Log.d(TAG, "setClient: " + signedInAccount.toString());
     }
 
     public void removeClient(){
@@ -194,44 +178,47 @@ public class GooglePlayGameServices extends GodotPlugin {
     //region Currently Signed In Player Information Methods -------------------------------------------------
 
     public String getCurrentPlayerID(){
-        if (client != null && client.currentPlayer != null)
-            return client.currentPlayer.player.getPlayerId();
+        if (client != null && client.getCurrentPlayer() != null)
+            return client.getCurrentPlayer().player.getPlayerId();
         return "";
     }
 
     public String getCurrentPlayerDisplayName(){
-        if (client != null && client.currentPlayer != null)
-            return client.currentPlayer.player.getDisplayName();
+        if (client != null && client.getCurrentPlayer() != null)
+            return client.getCurrentPlayer().player.getDisplayName();
         return "";
     }
 
     public String getCurrentPlayerTitle(){
-        if (client != null && client.currentPlayer != null)
-            return client.currentPlayer.player.getTitle();
+        if (client != null && client.getCurrentPlayer() != null)
+            return client.getCurrentPlayer().player.getTitle();
         return "";
     }
 
     public int getCurrentPlayerLevel(){
-        if (client != null && client.currentPlayer != null)
-            return client.currentPlayer.player.getLevelInfo().getCurrentLevel().getLevelNumber();
+        if (client != null && client.getCurrentPlayer() != null) {
+            PlayerLevelInfo levelInfo = client.getCurrentPlayer().player.getLevelInfo();
+            if (levelInfo != null)
+                return levelInfo.getCurrentLevel().getLevelNumber();
+        }
         return 0;
     }
 
     public String getCurrentPlayerXP(){
-        if (client != null && client.currentPlayer != null)
-            return "" + client.currentPlayer.player.getLevelInfo().getCurrentXpTotal();
+        if (client != null && client.getCurrentPlayer() != null)
+            return "" + client.getCurrentPlayer().player.getLevelInfo().getCurrentXpTotal();
         return "";
     }
 
     public String getCurrentPlayerMaxXP(){
-        if (client != null && client.currentPlayer != null)
-            return "" + client.currentPlayer.player.getLevelInfo().getCurrentLevel().getMaxXp();
+        if (client != null && client.getCurrentPlayer() != null)
+            return "" + client.getCurrentPlayer().player.getLevelInfo().getCurrentLevel().getMaxXp();
         return "";
     }
 
     public String getCurrentPlayerMinXP(){
-        if (client != null && client.currentPlayer != null)
-            return "" + client.currentPlayer.player.getLevelInfo().getCurrentLevel().getMinXp();
+        if (client != null && client.getCurrentPlayer() != null)
+            return "" + client.getCurrentPlayer().player.getLevelInfo().getCurrentLevel().getMinXp();
         return "";
     }
 
@@ -240,7 +227,7 @@ public class GooglePlayGameServices extends GodotPlugin {
      */
     public boolean requestCurrentPlayerIcon(boolean hiRes){
         if (client != null)
-            return client.currentPlayer.requestPlayerIcon(hiRes);
+            return client.getCurrentPlayer().requestPlayerIcon(hiRes);
         return false;
     }
 
@@ -250,7 +237,7 @@ public class GooglePlayGameServices extends GodotPlugin {
      */
     public boolean requestCurrentPlayerBanner(boolean portrait){
         if (client != null)
-            return client.currentPlayer.requestPlayerBanner(portrait);
+            return client.getCurrentPlayer().requestPlayerBanner(portrait);
         return false;
     }
 
@@ -315,25 +302,6 @@ public class GooglePlayGameServices extends GodotPlugin {
     }
 
     //endregion
-
-    /**
-     *
-     * @param ids a string with multiple possibly multiple (or a single) instance IDs. If this
-     *            contains fewer IDs in the string than needed, then the last ID in this string will
-     *            be repeated for the remaining entries in the array
-     * @param delimiter The string that separates the IDs in the ids string
-     */
-    private void setInstanceIDsFromString(String ids, String delimiter){
-        String[] splitIDs = ids.split(delimiter);
-
-        for (int i = 0; i < instanceIDs.length; i++){
-            if (i < splitIDs.length) instanceIDs[i] = Integer.parseInt(splitIDs[i]);
-            else instanceIDs[i] = Integer.parseInt(splitIDs[splitIDs.length - 1]);
-
-            Log.d(TAG, "Instance ID [" + i + "]: " + instanceIDs[i]);
-        }
-    }
-
     @NonNull
     @Override
     public String getPluginName() {
@@ -356,5 +324,41 @@ public class GooglePlayGameServices extends GodotPlugin {
         );
     }
 
+    @NonNull
+    @Override
+    public Set<SignalInfo> getPluginSignals() {
+        Set<SignalInfo> signals = new ArraySet<>();
+
+        signals.add(new SignalInfo(Client.SIGNAL_SIGN_IN_COMPLETE, int.class, String.class));
+        signals.add(new SignalInfo(Client.SIGNAL_SIGN_IN_FAILED, int.class));
+        signals.add(new SignalInfo(Client.SIGNAL_SIGN_OUT, Boolean.class));
+        signals.add(new SignalInfo(Client.SIGNAL_GET_PLAYER_INFO_FAILED, int.class));
+
+        signals.add(new SignalInfo(SavedGames.SIGNAL_SAVED_GAME_LOADING_STARTED));
+        signals.add(new SignalInfo(SavedGames.SIGNAL_SAVED_GAME_LOADED, String.class, Boolean.class));
+        signals.add(new SignalInfo(SavedGames.SIGNAL_SAVED_GAME_READY, String.class, String.class));
+        signals.add(new SignalInfo(SavedGames.SIGNAL_SAVED_GAME_SAVED, Boolean.class));
+
+        signals.add(new SignalInfo(PlayerInfo.SIGNAL_ICON_REQUESTED, String.class, String.class, String.class));
+        signals.add(new SignalInfo(PlayerInfo.SIGNAL_BANNER_REQUESTED, String.class, String.class, String.class));
+
+        return signals;
+    }
+
+    @Override
+    public void onMainPause() {
+        Log.d(TAG, "Main Activity paused.");
+    }
+
+    @Override
+    public void onMainResume() {
+        Log.d(TAG, "Main Activity resumed.");
+    }
+
+    @Override
+    public void update(String message, Object... args) {
+        Log.d(TAG, "GPGS: emitting signal " + message);
+        emitSignal(message, args);
+    }
 
 }

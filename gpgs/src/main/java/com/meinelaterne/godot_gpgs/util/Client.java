@@ -24,44 +24,37 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.meinelaterne.godot_gpgs.GooglePlayGameServices;
 
-import org.godotengine.godot.GodotLib;
+public class Client extends ConcreteSubject implements Subscriber {
 
-public class Client {
+    public static final String SIGNAL_SIGN_IN_COMPLETE = "sign_in_complete";
+    public static final String SIGNAL_SIGN_IN_FAILED = "sign_in_failed";
+    public static final String SIGNAL_SIGN_OUT = "sign_out_complete";
+    public static final String SIGNAL_GET_PLAYER_INFO_FAILED = "get_player_info_failed";
 
     private static final String TAG = "gpgs";
 
     private static final int SIGN_IN_SILENT = 0;
     private static final int SIGN_IN_INTERACTIVE = 1;
 
-    private static final String[] GODOT_CALLBACK_FUNCTIONS = new String[] {
-            "_on_play_game_services_sign_in_success", //(int signInType, String playerID)
-            "_on_play_game_services_player_info_failure", //(int signInType)
-            "_on_play_game_services_sign_in_failure", //(int signInType)
-            "_on_play_game_services_sign_out", //(boolean success)
-    };
-
     // Request code used to invoke sign in user interactions.
     private static final int RC_SIGN_IN = 9001;
 
     // Client used to sign in with Google APIs
-    private GoogleSignInClient mGoogleSignInClient = null;
+    private GoogleSignInClient mGoogleSignInClient;
 
     // The currently signed in account, used to check the account has changed outside of this activity when resuming.
-    GoogleSignInAccount mSignedInAccount = null;
-
-    // Godot instance id needed to provide callback functionality in GDScript
-    private int instance_id = 0;
+    GoogleSignInAccount mSignedInAccount;
 
     // The activity that this code will run in when the game is deployed
-    private Activity activity = null;
+    private Activity activity;
 
     // The main class object for this module
-    private GooglePlayGameServices gpgs = null;
+    private GooglePlayGameServices gpgs;
 
-    public PlayerInfo currentPlayer = null;
+    private PlayerInfo currentPlayer = null;
 
-    public Client(final Activity activity, final int instance_id, GooglePlayGameServices gpgs, boolean buildSnapshots) {
-        this.instance_id = instance_id;
+    public Client(final Activity activity, GooglePlayGameServices gpgs, boolean buildSnapshots) {
+
         this.activity = activity;
         this.gpgs = gpgs;
 
@@ -104,7 +97,10 @@ public class Client {
                 } else {
                     Log.d(TAG, "signInSilent(): failure", task.getException());
                     onDisconnected();
-                    GodotLib.calldeferred(instance_id, GODOT_CALLBACK_FUNCTIONS[2], new Object[] { SIGN_IN_SILENT });
+
+                    updateSubscribers(Client.SIGNAL_SIGN_IN_FAILED);
+
+                    //GodotLib.calldeferred(instance_id, GODOT_CALLBACK_FUNCTIONS[2], new Object[] { SIGN_IN_SILENT });
                 }
             }
         });
@@ -119,11 +115,15 @@ public class Client {
                 if (task.isSuccessful()) {
                     Log.d(TAG, "signOut(): success");
                     onDisconnected();
-                    GodotLib.calldeferred(instance_id, GODOT_CALLBACK_FUNCTIONS[3], new Object[] { true });
+
+                    updateSubscribers(Client.SIGNAL_SIGN_OUT, true);
+
                 } else {
                     int code = ((ApiException) task.getException()).getStatusCode();
                     Log.d(TAG, "signOut() failed with API Exception status code: " + code);
-                    GodotLib.calldeferred(instance_id, GODOT_CALLBACK_FUNCTIONS[3], new Object[] { false });
+
+                    updateSubscribers(Client.SIGNAL_SIGN_OUT, false);
+
                 }
             }
         });
@@ -155,8 +155,11 @@ public class Client {
                 if (message != null) {
                     Log.d(TAG, "Connection error. ApiException message: " + message);
                 }
+
                 onDisconnected();
-                GodotLib.calldeferred(instance_id, GODOT_CALLBACK_FUNCTIONS[2], new Object[]{SIGN_IN_INTERACTIVE});
+
+                updateSubscribers(Client.SIGNAL_SIGN_IN_FAILED, SIGN_IN_INTERACTIVE);
+
             }
         }
     }
@@ -179,21 +182,42 @@ public class Client {
 
     public void getSignedInPlayer(final int signInType){
         PlayersClient playersClient = Games.getPlayersClient(activity, mSignedInAccount);
+
         playersClient.getCurrentPlayer().addOnSuccessListener(new OnSuccessListener<Player>() {
             @Override
             public void onSuccess(Player p) {
-                currentPlayer = new PlayerInfo(activity, instance_id, p);
-                Log.d(TAG, p.getPlayerId());
-
-                GodotLib.calldeferred(instance_id, GODOT_CALLBACK_FUNCTIONS[0], new Object[] { signInType, p.getPlayerId() });
+                setCurrentPlayer(new PlayerInfo(activity, p));
+                updateSubscribers(Client.SIGNAL_SIGN_IN_COMPLETE, signInType, p.getPlayerId());
             }
         })
         .addOnFailureListener(new OnFailureListener() {
             @Override
             public void onFailure(@NonNull Exception e) {
                 Log.d(TAG,"There was a problem getting the player id!");
-                GodotLib.calldeferred(instance_id, GODOT_CALLBACK_FUNCTIONS[1], new Object[] { signInType });
+                updateSubscribers(Client.SIGNAL_SIGN_IN_FAILED, signInType);
             }
         });
     }
+
+    @Override
+    public void update(String message, Object... args) {
+        updateSubscribers(message, args);
+    }
+
+    @Override
+    public void updateSubscribers(String message, Object... args) {
+        Log.d(TAG, "Client.updateSubscribers(): updating " + subscribers.size() + " subscribers");
+        super.updateSubscribers(message, args);
+    }
+
+    public void setCurrentPlayer(PlayerInfo value) {
+        currentPlayer = value;
+        currentPlayer.addSubscriber(this);
+        Log.d(TAG, "Client.setCurrentPlayer(): " + currentPlayer.player.getDisplayName());
+    }
+
+    public PlayerInfo getCurrentPlayer() {
+        return currentPlayer;
+    }
+
 }

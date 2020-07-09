@@ -1,7 +1,5 @@
 package com.meinelaterne.godot_gpgs.util;
 
-import org.godotengine.godot.GodotLib;
-
 import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -16,30 +14,26 @@ import com.google.android.gms.common.images.ImageManager;
 import java.io.File;
 import java.io.FileOutputStream;
 
-public class GodotCache {
+public class GodotCache extends ConcreteSubject {
     private static final String TAG = "gpgs";
 
     public static final String GODOT_SUB_FOLDER = "files";
     public static final String CACHE_FOLDER = "gpgs_lib_cache";
 
-    private Activity activity = null;
-    private int instance_id = 0;
-
+    private Activity activity;
     private File cacheDir;
 
-    public GodotCache(Activity activity, int instance_id){
+    public GodotCache(Activity activity) {
         this.activity = activity;
-        this.instance_id = instance_id;
-
         prepareStorage();
     }
 
-    public void sendURIImage(final Uri uri, final String fileName, final String godotFunction, final String extraInfo){
+    public void sendURIImage(final Uri uri, final String fileName, final String signalName, final String extraInfo){
     	final File file = new File(cacheDir, fileName);
 
 		if (file.exists()){
 			Log.d(TAG, "Image already cached and available: " + file.getAbsolutePath());
-			GodotLib.calldeferred(instance_id, godotFunction, new Object[] { extraInfo, CACHE_FOLDER, fileName});
+			updateSubscribers(signalName, extraInfo, CACHE_FOLDER, fileName);
 		}else{
 			activity.runOnUiThread(new Runnable() {
 				@Override
@@ -53,7 +47,7 @@ public class GodotCache {
 
 							Bitmap image = drawableToBitmap(drawable);
 							saveBitmapToFolder(image, file);
-							GodotLib.calldeferred(instance_id, godotFunction, new Object[] { extraInfo, CACHE_FOLDER, fileName});
+							updateSubscribers(signalName, extraInfo, CACHE_FOLDER, fileName);
 						}
 					}, uri);
 				}
@@ -80,9 +74,19 @@ public class GodotCache {
     public static void clearCache(Activity activity){
         File cacheDir = new File(activity.getApplicationInfo().dataDir + File.separator + GODOT_SUB_FOLDER);
         if (cacheDir.isDirectory()){
-            for(File tempFile : cacheDir.listFiles()) {
-                Log.d(TAG, "cached file deleted: " + tempFile.getPath());
-                tempFile.delete();
+            File[] files = cacheDir.listFiles();
+
+            if (files == null || files.length == 0) {
+                Log.d(TAG, "GodotCache.clearCache(): no cached files to delete.");
+                return;
+            }
+
+            for(File tempFile : files) {
+                String p = tempFile.getPath();
+                if (tempFile.delete())
+                    Log.d(TAG, "GodotCache.clearCache(): cached file deleted: " + p);
+                else
+                    Log.d(TAG, "GodotCache.clearCache(): failed to delete cached file: " + p);
             }
         }
     }

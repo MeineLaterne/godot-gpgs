@@ -4,26 +4,23 @@ import android.app.Activity;
 
 import com.google.android.gms.games.Player;
 
-public class PlayerInfo {
+public class PlayerInfo extends ConcreteSubject implements Subscriber {
+
+    public static final String SIGNAL_ICON_REQUESTED = "player_icon_request_handled";
+    public static final String SIGNAL_BANNER_REQUESTED = "player_banner_request_handled";
+
     private static final String TAG = "gpgs";
 
-    private static final String[] GODOT_CALLBACK_FUNCTIONS = new String[] {
-            "_on_play_game_services_player_icon_requested", //(String playerID, String folder, String fileName)
-            "_on_play_game_services_player_banner_requested", //(String playerID, String folder, String fileName)
-    };
-
-    // Godot instance id needed to provide callback functionality in GDScript
-    private int instance_id = 0;
-
     private Activity activity = null;
-    public Player player = null;
     private GodotCache imageCache;
 
-    public PlayerInfo(Activity activity, int instance_id, Player player){
+    public Player player = null;
+
+    public PlayerInfo(Activity activity, Player player){
         this.activity = activity;
-        this.instance_id = instance_id;
         this.player = player;
-        imageCache = new GodotCache(activity, instance_id);
+        imageCache = new GodotCache(activity);
+        imageCache.addSubscriber(this);
     }
 
     public boolean requestPlayerIcon(boolean hiRes){
@@ -32,14 +29,14 @@ public class PlayerInfo {
                 imageCache.sendURIImage(
                         player.getHiResImageUri(),
                         player.getPlayerId()+"_hi_res_icon.png",
-                        GODOT_CALLBACK_FUNCTIONS[0],
+                        PlayerInfo.SIGNAL_ICON_REQUESTED,
                         player.getPlayerId());
             }else if (player.hasIconImage()){
                 imageCache.sendURIImage(
-                    player.getIconImageUri(),
-                    player.getPlayerId()+"_icon.png",
-                    GODOT_CALLBACK_FUNCTIONS[0],
-                    player.getPlayerId());
+                        player.getIconImageUri(),
+                        player.getPlayerId()+"_icon.png",
+                        PlayerInfo.SIGNAL_ICON_REQUESTED,
+                        player.getPlayerId());
             }
 
             return true;
@@ -53,17 +50,23 @@ public class PlayerInfo {
                 imageCache.sendURIImage(
                         player.getBannerImagePortraitUri(),
                         player.getPlayerId()+"_banner_portrait.png",
-                        GODOT_CALLBACK_FUNCTIONS[1],
+                        PlayerInfo.SIGNAL_BANNER_REQUESTED,
                         player.getPlayerId());
             }else{
                 imageCache.sendURIImage(
                         player.getBannerImageLandscapeUri(),
                         player.getPlayerId()+"_banner_landscape.png",
-                        GODOT_CALLBACK_FUNCTIONS[1],
+                        PlayerInfo.SIGNAL_BANNER_REQUESTED,
                         player.getPlayerId());
             }
             return true;
         }
         return false;
     }
+
+    @Override
+    public void update(String message, Object... args) {
+        updateSubscribers(message, args);
+    }
+
 }
