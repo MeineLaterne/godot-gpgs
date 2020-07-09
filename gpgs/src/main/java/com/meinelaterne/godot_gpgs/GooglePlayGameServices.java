@@ -29,9 +29,6 @@ import java.util.Set;
 
 public class GooglePlayGameServices extends GodotPlugin implements Subscriber {
 
-    public static final String GODOT_SUB_FOLDER = "files";
-    public static final String CACHE_FOLDER = "gpgs_lib_cache";
-
     private static final String TAG = "gpgs";
 
     private static final int REQUEST_RESOLVE_ERROR = 1001;
@@ -329,10 +326,10 @@ public class GooglePlayGameServices extends GodotPlugin implements Subscriber {
     public Set<SignalInfo> getPluginSignals() {
         Set<SignalInfo> signals = new ArraySet<>();
 
-        signals.add(new SignalInfo(Client.SIGNAL_SIGN_IN_COMPLETE, int.class, String.class));
-        signals.add(new SignalInfo(Client.SIGNAL_SIGN_IN_FAILED, int.class));
+        signals.add(new SignalInfo(Client.SIGNAL_SIGN_IN_COMPLETE, String.class));
+        signals.add(new SignalInfo(Client.SIGNAL_SIGN_IN_FAILED, String.class));
         signals.add(new SignalInfo(Client.SIGNAL_SIGN_OUT, Boolean.class));
-        signals.add(new SignalInfo(Client.SIGNAL_GET_PLAYER_INFO_FAILED, int.class));
+        signals.add(new SignalInfo(Client.SIGNAL_GET_PLAYER_INFO_FAILED));
 
         signals.add(new SignalInfo(SavedGames.SIGNAL_SAVED_GAME_LOADING_STARTED));
         signals.add(new SignalInfo(SavedGames.SIGNAL_SAVED_GAME_LOADED, String.class, Boolean.class));
@@ -343,16 +340,6 @@ public class GooglePlayGameServices extends GodotPlugin implements Subscriber {
         signals.add(new SignalInfo(PlayerInfo.SIGNAL_BANNER_REQUESTED, String.class, String.class, String.class));
 
         return signals;
-    }
-
-    @Override
-    public void onMainPause() {
-        Log.d(TAG, "Main Activity paused.");
-    }
-
-    @Override
-    public void onMainResume() {
-        Log.d(TAG, "Main Activity resumed.");
     }
 
     @Override

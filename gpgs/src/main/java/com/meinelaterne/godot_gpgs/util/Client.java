@@ -95,12 +95,12 @@ public class Client extends ConcreteSubject implements Subscriber {
                     Log.d(TAG, "signInSilent(): success");
                     onConnected(task.getResult(), SIGN_IN_SILENT);
                 } else {
-                    Log.d(TAG, "signInSilent(): failure", task.getException());
+                    Exception e = task.getException();
+                    Log.d(TAG, "signInSilent(): failure", e);
                     onDisconnected();
 
-                    updateSubscribers(Client.SIGNAL_SIGN_IN_FAILED);
+                    updateSubscribers(Client.SIGNAL_SIGN_IN_FAILED, e.getMessage());
 
-                    //GodotLib.calldeferred(instance_id, GODOT_CALLBACK_FUNCTIONS[2], new Object[] { SIGN_IN_SILENT });
                 }
             }
         });
@@ -158,7 +158,7 @@ public class Client extends ConcreteSubject implements Subscriber {
 
                 onDisconnected();
 
-                updateSubscribers(Client.SIGNAL_SIGN_IN_FAILED, SIGN_IN_INTERACTIVE);
+                updateSubscribers(Client.SIGNAL_SIGN_IN_FAILED, message);
 
             }
         }
@@ -187,14 +187,14 @@ public class Client extends ConcreteSubject implements Subscriber {
             @Override
             public void onSuccess(Player p) {
                 setCurrentPlayer(new PlayerInfo(activity, p));
-                updateSubscribers(Client.SIGNAL_SIGN_IN_COMPLETE, signInType, p.getPlayerId());
+                updateSubscribers(Client.SIGNAL_SIGN_IN_COMPLETE, p.getPlayerId());
             }
         })
         .addOnFailureListener(new OnFailureListener() {
             @Override
             public void onFailure(@NonNull Exception e) {
                 Log.d(TAG,"There was a problem getting the player id!");
-                updateSubscribers(Client.SIGNAL_SIGN_IN_FAILED, signInType);
+                updateSubscribers(Client.SIGNAL_SIGN_IN_FAILED, e.getMessage());
             }
         });
     }
@@ -202,12 +202,6 @@ public class Client extends ConcreteSubject implements Subscriber {
     @Override
     public void update(String message, Object... args) {
         updateSubscribers(message, args);
-    }
-
-    @Override
-    public void updateSubscribers(String message, Object... args) {
-        Log.d(TAG, "Client.updateSubscribers(): updating " + subscribers.size() + " subscribers");
-        super.updateSubscribers(message, args);
     }
 
     public void setCurrentPlayer(PlayerInfo value) {
